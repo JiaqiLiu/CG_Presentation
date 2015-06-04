@@ -2,7 +2,7 @@
 | Learn and modified from "Anton's OpenGL 4 Tutorials"                         |
 |                                                                              | 
 | Jiaqi Liu                                                                    |
-| 2015-6-4                                                                     |
+| 2015-06                                                                     |
 \******************************************************************************/
 #include "gl_utils.h" // utility functions discussed in earlier tutorials
 #include <GL/glew.h> // include GLEW and new version of GL on Windows
@@ -30,8 +30,7 @@ using glm::dot;
 #pragma region data
 vec4 g_camera_pos = vec4(0, 0, 5, 1);
 
-// TODO: What if the position of camera moves? 
-static const vec4 g_lightPos = vec4(g_camera_pos);
+static const vec4 g_light_pos = vec4(g_camera_pos);
 
 mat4 g_model_mat = mat4(1.0f);
 mat4 g_view_mat = glm::lookAt(
@@ -40,7 +39,7 @@ mat4 g_view_mat = glm::lookAt(
   vec3(0.0, 1.0, 0.0));
 mat4 g_projection_mat = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 
-GLfloat g_speed = 0.5f;
+GLfloat g_speed = 35.0f;
 GLfloat g_delta_1 = abs(g_speed / 15.0f);
 GLfloat g_delta_2 = abs(g_speed / 5.0f);
 
@@ -66,8 +65,6 @@ GLFWwindow* g_window = NULL;
 GLuint vertex_buffer;
 GLuint normal_buffer;
 
-// TODO: Maybe it's better to move the camera instead of the model? No, I think I should move the model instead of the camera. 
-// TODO: I just want to write C code, not OOP. 
 // TODO: Please smooth the animation. Anti-aliasing. 
 
 vec3 MyGetVertex(GLfloat array[], GLint i) {
@@ -115,21 +112,21 @@ void UpdateTriangles() {
 }
 
 // Rotate some vertex. 
-void RotateTriangles() {
+void RotateTriangles(GLfloat elapsed_time) {
   bool is_moved = false;
   mat4 R;
   if (glfwGetKey(g_window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
     R = glm::rotate(
       mat4(1.0f),
-      g_speed,
-      vec3(0, 1, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      g_speed * elapsed_time,
+      vec3(0, 1, 0)); 
     is_moved = true;
   }
   if (glfwGetKey(g_window, GLFW_KEY_LEFT) == GLFW_PRESS) {
     R = glm::rotate(
       mat4(1.0f),
-      -g_speed,
-      vec3(0, 1, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      -g_speed * elapsed_time,
+      vec3(0, 1, 0)); 
     is_moved = true;
   }    
   if (is_moved) {
@@ -146,62 +143,61 @@ void RotateTriangles() {
   }
 }
 
-// TODO: Please use time instead of only speed. 
-void KeyboardCallback() {
+void KeyboardCallback(GLfloat elapsed_time) {
   if (glfwGetKey(g_window, GLFW_KEY_A) == GLFW_PRESS) {
     mat4 R = glm::rotate(
       mat4(1.0f),
-      -g_speed * 2,
-      vec3(0, 1, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      -g_speed * elapsed_time,
+      vec3(0, 1, 0)); 
     g_model_mat = R * g_model_mat;
   }
   if (glfwGetKey(g_window, GLFW_KEY_D) == GLFW_PRESS) {
     mat4 R = glm::rotate(
       mat4(1.0f),
-      g_speed * 2,
-      vec3(0, 1, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      g_speed * elapsed_time,
+      vec3(0, 1, 0));
     g_model_mat = R * g_model_mat;
   }
   if (glfwGetKey(g_window, GLFW_KEY_W) == GLFW_PRESS) {
     mat4 R = glm::rotate(
       mat4(1.0f),
-      -g_speed * 2,
-      vec3(1, 0, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      -g_speed * elapsed_time,
+      vec3(1, 0, 0));
     g_model_mat = R * g_model_mat;
   }
   if (glfwGetKey(g_window, GLFW_KEY_S) == GLFW_PRESS) {
     mat4 R = glm::rotate(
       mat4(1.0f),
-      g_speed * 2,
-      vec3(1, 0, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      g_speed * elapsed_time,
+      vec3(1, 0, 0)); 
     g_model_mat = R * g_model_mat;
   }
   if (glfwGetKey(g_window, GLFW_KEY_E) == GLFW_PRESS) {
     mat4 R = glm::rotate(
       mat4(1.0f),
-      -g_speed * 2,
-      vec3(0, 0, 1)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      -g_speed * elapsed_time,
+      vec3(0, 0, 1));
     g_model_mat = R * g_model_mat;
   }
   if (glfwGetKey(g_window, GLFW_KEY_Q) == GLFW_PRESS) {
     mat4 R = glm::rotate(
       mat4(1.0f),
-      g_speed * 2,
-      vec3(0, 0, 1)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      g_speed * elapsed_time,
+      vec3(0, 0, 1));
     g_model_mat = R * g_model_mat;
   }
 
   // Camera controller
   // Here I don't want to move the model. If I move it, then it will be near with the light, and the light will be too strong. 
   if (glfwGetKey(g_window, GLFW_KEY_UP) == GLFW_PRESS) {
-    g_camera_pos = g_camera_pos - normalize(g_camera_pos) * g_speed;
+    g_camera_pos = g_camera_pos - normalize(g_camera_pos) * g_speed * elapsed_time;
     g_view_mat = glm::lookAt(
       vec3(g_camera_pos.x, g_camera_pos.y, g_camera_pos.z),
       vec3(0.0, 0.0, 0.0),
       vec3(0.0, 1.0, 0.0));
   }
   if (glfwGetKey(g_window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-    g_camera_pos = g_camera_pos + normalize(g_camera_pos) * g_speed;
+    g_camera_pos = g_camera_pos + normalize(g_camera_pos) * g_speed * elapsed_time;
     g_view_mat = glm::lookAt(
       vec3(g_camera_pos.x, g_camera_pos.y, g_camera_pos.z),
       vec3(0.0, 0.0, 0.0),
@@ -216,7 +212,7 @@ void KeyboardCallback() {
     g_model_mat = glm::rotate(
       mat4(1.0f),
       90.0f,
-      vec3(1, 0, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
+      vec3(1, 0, 0)); 
   } 
 
   // TODO: Writing like this will change lots of times by pressing only one time. I don't know how to make it better. 
@@ -230,8 +226,6 @@ void KeyboardCallback() {
   // change speed
   if (glfwGetKey(g_window, GLFW_KEY_0) == GLFW_PRESS) {
     g_speed += g_delta_1;
-    if (g_speed > 2)
-      g_speed = 2;
     std::cout << "speed: " << g_speed << std::endl;
   }
   if (glfwGetKey(g_window, GLFW_KEY_9) == GLFW_PRESS) {
@@ -243,8 +237,6 @@ void KeyboardCallback() {
   // change speed
   if (glfwGetKey(g_window, GLFW_KEY_8) == GLFW_PRESS) {
     g_speed += g_delta_2;
-    if (g_speed > 2)
-      g_speed = 2;
     std::cout << "speed: " << g_speed << std::endl;
   }
   if (glfwGetKey(g_window, GLFW_KEY_7) == GLFW_PRESS) {
@@ -259,7 +251,6 @@ int main() {
   assert(restart_gl_log());
   // all the GLFW and GLEW start-up code is moved to here in gl_utils.cpp
   assert(start_gl());
-  // tell GL to only draw onto a pixel if the shape is closer to the viewer
   glEnable(GL_DEPTH_TEST); // enable depth-testing
   glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 
@@ -317,12 +308,10 @@ int main() {
     print_programme_info_log(shader_programme);
     return false;
   }
-
   glUseProgram(shader_programme);
 #pragma endregion
 
   UpdateTriangles();
-  // Get a handle for our "MVP" uniform
   GLuint projection_mat_id = glGetUniformLocation(shader_programme, "projection_mat");
   GLuint view_mat_id = glGetUniformLocation(shader_programme, "view_mat");
   GLuint model_mat_id = glGetUniformLocation(shader_programme, "model_mat");
@@ -341,13 +330,11 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
   glBindBuffer(GL_ARRAY_BUFFER, normal_buffer);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-  // TODO: Where is color? 
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
 
-  // Get a handle for our "LightPosition" uniform
   GLuint light_pos_id = glGetUniformLocation(shader_programme, "light_position_world");
-  glUniform3f(light_pos_id, g_lightPos.x, g_lightPos.y + 1, g_lightPos.z);
+  glUniform3f(light_pos_id, g_light_pos.x, g_light_pos.y + 1, g_light_pos.z);
 
   while (!glfwWindowShouldClose(g_window)) {
     // add a timer for doing animation
@@ -367,14 +354,12 @@ int main() {
     // time that I call glDrawArrays() so I never use the wrong shader programme
     glUseProgram(shader_programme);
 
-    // It's good to use callback, or combine those keyboard function together.
+    // TODO: It's good to use callback, or combine those keyboard function together.
     // But I think that use them separately makes the program clearer. 
-    RotateTriangles();
-    KeyboardCallback();
+    RotateTriangles(static_cast<GLfloat>(elapsed_seconds));
+    KeyboardCallback(static_cast<GLfloat>(elapsed_seconds));
 
-    // TODO: You know, calling glUniformMatrix4fv is a little bit expensive. 
-    // Please update those matrix only when necessary. 
-    // Maybe you only need M, V, P.
+    // TODO: You know, calling glUniformMatrix4fv is a little bit expensive. Please update those matrix only when necessary. 
     glUniformMatrix4fv(model_mat_id, 1, GL_FALSE, &g_model_mat[0][0]);
     glUniformMatrix4fv(view_mat_id, 1, GL_FALSE, &g_view_mat[0][0]);
     glUniformMatrix4fv(projection_mat_id, 1, GL_FALSE, &g_projection_mat[0][0]);
