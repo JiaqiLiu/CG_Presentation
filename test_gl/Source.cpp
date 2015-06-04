@@ -93,10 +93,6 @@ void CalculateNormals() {
     vec3 v2 = MyGetVertex(g_triangles, i + 1);
     vec3 v3 = MyGetVertex(g_triangles, i + 2);
     vec3 n = normalize(cross(v2 - v1, v3 - v1));
-    float res = dot(-v1, n);// TODO: WHY?? 
-    if (res > 0) {
-      //n = -n;
-    }
     MySetVertex(g_normal_data, i, n);
     MySetVertex(g_normal_data, i + 1, n);
     MySetVertex(g_normal_data, i + 2, n);
