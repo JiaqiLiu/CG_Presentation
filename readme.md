@@ -10,4 +10,4 @@ One small presentational program for Computational Geometry Course.
 
 TODO: 
 
-* There are stills some places where I can make progress. I will update it when I learn them well. 
+* There are stills some places can be improved. I will update the codes when I learn them well...
