@@ -39,21 +39,12 @@ mat4 g_view_mat = glm::lookAt(
   vec3(0.0, 0.0, 0.0),
   vec3(0.0, 1.0, 0.0));
 mat4 g_projection_mat = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-mat4 getModelMatrix() {
-  return g_model_mat;
-}
-mat4 getViewMatrix() {
-  return g_view_mat;
-}
-mat4 getProjectionMatrix() {
-  return g_projection_mat;
-}
 
-GLfloat g_speed = 0.4f;
+GLfloat g_speed = 0.5f;
 GLfloat g_delta_1 = abs(g_speed / 15.0f);
 GLfloat g_delta_2 = abs(g_speed / 5.0f);
 
-static const int g_triangle_num = 10;
+static const int g_triangle_num = 8;
 int g_num_draw = 7;
 GLfloat g_vertices[] = {
   0.0f,               -0.8f,  1.0f,
@@ -77,7 +68,7 @@ GLuint normal_buffer;
 
 // TODO: Maybe it's better to move the camera instead of the model? No, I think I should move the model instead of the camera. 
 // TODO: I just want to write C code, not OOP. 
-// TODO: Please smooth the animation. 
+// TODO: Please smooth the animation. Anti-aliasing. 
 
 vec3 MyGetVertex(GLfloat array[], GLint i) {
   return vec3(array[i * 3 + 0], array[i * 3 + 1], array[i * 3 + 2]);
@@ -104,7 +95,7 @@ void CalculateNormals() {
     vec3 n = normalize(cross(v2 - v1, v3 - v1));
     float res = dot(-v1, n);// TODO: WHY?? 
     if (res > 0) {
-      n = -n;
+      //n = -n;
     }
     MySetVertex(g_normal_data, i, n);
     MySetVertex(g_normal_data, i + 1, n);
@@ -119,8 +110,8 @@ void UpdateTriangles() {
   SetTriangle(2, MyGetVertex(g_vertices, 1), MyGetVertex(g_vertices, 4), MyGetVertex(g_vertices, 3));
   SetTriangle(3, MyGetVertex(g_vertices, 1), MyGetVertex(g_vertices, 2), MyGetVertex(g_vertices, 4));
   SetTriangle(4, MyGetVertex(g_vertices, 2), MyGetVertex(g_vertices, 5), MyGetVertex(g_vertices, 4));
-  SetTriangle(5, MyGetVertex(g_vertices, 2), MyGetVertex(g_vertices, 5), MyGetVertex(g_vertices, 0));
-  SetTriangle(6, MyGetVertex(g_vertices, 5), MyGetVertex(g_vertices, 3), MyGetVertex(g_vertices, 0));
+  SetTriangle(5, MyGetVertex(g_vertices, 2), MyGetVertex(g_vertices, 0), MyGetVertex(g_vertices, 5));
+  SetTriangle(6, MyGetVertex(g_vertices, 3), MyGetVertex(g_vertices, 5), MyGetVertex(g_vertices, 0));
   // top
   SetTriangle(7, MyGetVertex(g_vertices, 3), MyGetVertex(g_vertices, 4), MyGetVertex(g_vertices, 5));
 
@@ -232,6 +223,14 @@ void KeyboardCallback() {
       vec3(1, 0, 0)); // where x, y, z is axis of rotation(e.g. 0 1 0)
   } 
 
+  // TODO: Writing like this will change lots of times by pressing only one time. I don't know how to make it better. 
+  if (glfwGetKey(g_window, GLFW_KEY_T) == GLFW_PRESS) {
+    if (g_num_draw != g_triangle_num) 
+      g_num_draw = g_triangle_num;
+    else
+      g_num_draw = g_triangle_num - 1;
+  }
+
   // change speed
   if (glfwGetKey(g_window, GLFW_KEY_0) == GLFW_PRESS) {
     g_speed += g_delta_1;
@@ -267,9 +266,11 @@ int main() {
   // tell GL to only draw onto a pixel if the shape is closer to the viewer
   glEnable(GL_DEPTH_TEST); // enable depth-testing
   glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
-  glEnable(GL_CULL_FACE); // cull face
-  glCullFace(GL_BACK); // cull back face
-  glFrontFace(GL_CW); // GL_CCW for counter clock-wise
+
+  // We want to see inside, so we disable glCullFace;
+  //glEnable(GL_CULL_FACE); // cull face
+  //glCullFace(GL_BACK); // cull back face
+  //glFrontFace(GL_CW); // GL_CCW for counter clock-wise
 
 #pragma region shader
   // Shader
@@ -326,9 +327,9 @@ int main() {
 
   UpdateTriangles();
   // Get a handle for our "MVP" uniform
-  GLuint mvp_mat_id = glGetUniformLocation(shader_programme, "MVP");
-  GLuint view_mat_id = glGetUniformLocation(shader_programme, "V");
-  GLuint model_mat_id = glGetUniformLocation(shader_programme, "M");
+  GLuint projection_mat_id = glGetUniformLocation(shader_programme, "projection_mat");
+  GLuint view_mat_id = glGetUniformLocation(shader_programme, "view_mat");
+  GLuint model_mat_id = glGetUniformLocation(shader_programme, "model_mat");
 
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
@@ -349,8 +350,8 @@ int main() {
   glEnableVertexAttribArray(1);
 
   // Get a handle for our "LightPosition" uniform
-  GLuint light_pos_id = glGetUniformLocation(shader_programme, "LightPosition_worldspace");
-  glUniform3f(light_pos_id, g_lightPos.x, g_lightPos.y, g_lightPos.z);
+  GLuint light_pos_id = glGetUniformLocation(shader_programme, "light_position_world");
+  glUniform3f(light_pos_id, g_lightPos.x, g_lightPos.y + 1, g_lightPos.z);
 
   while (!glfwWindowShouldClose(g_window)) {
     // add a timer for doing animation
@@ -363,6 +364,8 @@ int main() {
     // wipe the drawing surface clear
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, g_gl_width, g_gl_height);
+    // Dark blue background
+    glClearColor(0.0f, 0.0f, 0.3f, 0.0f);
 
     // Note: this call is not necessary, but I like to do it anyway before any
     // time that I call glDrawArrays() so I never use the wrong shader programme
@@ -373,13 +376,12 @@ int main() {
     RotateTriangles();
     KeyboardCallback();
 
-    // TODO: Why you get them? Aren't they global? You can use them directly. 
-    mat4 MVP = g_projection_mat * g_view_mat * g_model_mat;
     // TODO: You know, calling glUniformMatrix4fv is a little bit expensive. 
     // Please update those matrix only when necessary. 
-    glUniformMatrix4fv(mvp_mat_id, 1, GL_FALSE, &MVP[0][0]);
+    // Maybe you only need M, V, P.
     glUniformMatrix4fv(model_mat_id, 1, GL_FALSE, &g_model_mat[0][0]);
     glUniformMatrix4fv(view_mat_id, 1, GL_FALSE, &g_view_mat[0][0]);
+    glUniformMatrix4fv(projection_mat_id, 1, GL_FALSE, &g_projection_mat[0][0]);
     // Note: this call is not necessary, but I like to do it anyway before any
     // time that I call glDrawArrays() so I never use the wrong vertex data
     glBindVertexArray(vao);

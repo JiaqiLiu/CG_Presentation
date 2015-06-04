@@ -1,76 +1,75 @@
-#version 410 
+#version 410
 
-// Interpolated values from the vertex shaders
-in vec3 Position_worldspace;
-in vec3 Normal_cameraspace;
-in vec3 EyeDirection_cameraspace;
-in vec3 LightDirection_cameraspace;
+in vec3 position_eye, normal_eye;
 
-// Values that stay constant for the whole mesh.
-uniform mat4 MV;
-uniform vec3 LightPosition_worldspace;
+uniform mat4 view_mat;
+uniform vec3 light_position_world;
 
-void main(){
+// fixed point light properties
+// Ls, Ld, La are color. light_power determine how powerful the light is. 
+vec3 Ls = vec3 (1.0, 1.0, 1.0); //
+vec3 Ld = vec3 (1.0, 1.0, 1.0); //
+vec3 La = vec3 (1.0, 1.0, 1.0); // 
+float light_power = 10.0f; // just one augmentation.
+  
+// surface reflectance
+vec3 Ks = vec3 (0.2, 0.2, 0.2); // 
+vec3 Kd = vec3 (0.9, 0.8, 0.2); // 
+vec3 Kd_inside = vec3(0.75, 0.75, 0.5);
+vec3 Ka = vec3(0.3, 0.3, 0.3) * Kd;
+vec3 Ka_inside = vec3(0.3, 0.3, 0.3) * Kd_inside; 
+float specular_exponent = 5.0; // specular 'power'
 
-	// Light emission properties
-	// You probably want to put them as uniforms
-	vec3 LightColor = vec3(1,1,1);
-	float LightPower = 10.0f;
+out vec4 fragment_colour; // final colour of surface
+
+void main () {
+	vec3 surface_to_viewer_eye = normalize (-position_eye);
+	bool is_inside = (dot(surface_to_viewer_eye, normal_eye)) < 0.0f ? true : false;
 	
-	// Material properties
-    vec3 MaterialDiffuseColor = vec3(0.9,0.8,0.2);
-    vec3 MaterialDiffuseColor_inside = vec3(0.75,0.75,0.5);
-    vec3 MaterialAmbientColor = vec3(0.3,0.3,0.3) * MaterialDiffuseColor;
-	vec3 MaterialAmbientColor_inside = vec3(0.3,0.3,0.3) * MaterialDiffuseColor_inside;
-	vec3 MaterialSpecularColor = vec3(0.2, 0.2, 0.2);
 
-	// Distance to the light
-	float distance = length( LightPosition_worldspace - Position_worldspace );
+	// ambient intensity
+	vec3 Ia;
+	if (is_inside) {
+		Ia = La * Ka_inside;
+	} else {
+		Ia = La * Ka;
+	}
 
-	// Normal of the computed fragment, in camera space
-	vec3 n = normalize( Normal_cameraspace );
-	// Direction of the light (from the fragment to the light)
-	vec3 l = normalize( LightDirection_cameraspace );
-	// Cosine of the angle between the normal and the light direction, 
-	// clamped above 0
-	//  - light is at the vertical of the triangle -> 1
-	//  - light is perpendicular to the triangle -> 0
-	//  - light is behind the triangle -> 0
-	// float cosTheta = clamp( dot( n,l ), 0,1 );
-    float cosTheta = abs(dot(n, l));
+	// diffuse intensity
+	// raise light position to eye space
+	vec3 light_position_eye = vec3 (view_mat * vec4 (light_position_world, 1.0));
+	vec3 distance_to_light_eye = light_position_eye - position_eye;
+	float distance = length(distance_to_light_eye);
+	vec3 direction_to_light_eye = normalize (distance_to_light_eye);
+	float dot_prod = dot (direction_to_light_eye, normal_eye);
+	// dot_prod = max (dot_prod, 0.0);
+	dot_prod = abs(dot_prod); // To make the color of both side the same. 
+	vec3 Id;
+	if (is_inside) {
+		Id = Ld * Kd_inside * dot_prod * light_power / (distance * distance); // final diffuse intensity	
+	} else {
+		Id = Ld * Kd * dot_prod * light_power / (distance * distance); // final diffuse intensity
+	}
 	
-	// Eye vector (towards the camera)
-	vec3 E = normalize(EyeDirection_cameraspace);
-	// Direction in which the triangle reflects the light
-	vec3 R = reflect(-l,n);
-	// Cosine of the angle between the Eye vector and the Reflect vector,
-	// clamped to 0
-	//  - Looking into the reflection -> 1
-	//  - Looking elsewhere -> < 1
-	float cosAlpha = clamp( dot( E,R ), 0,1 );
-    
-    // jiaqi
-    float cosView = dot(E, n);
+
+	// specular intensity
+	// origin Phong Model
+	//vec3 reflection_eye = reflect (-direction_to_light_eye, normal_eye);
+	//float dot_prod_specular = dot (reflection_eye, surface_to_viewer_eye);
+	//dot_prod_specular = max (dot_prod_specular, 0.0);
+	//float specular_factor = pow (dot_prod_specular, specular_exponent);
 	
-    
-    if (cosView < 0.0f){
-        // we see inside the cube.
-        gl_FragColor.rgb =
-            // Ambient : simulates indirect lighting
-            MaterialAmbientColor_inside +
-            // Diffuse : "color" of the object
-            MaterialDiffuseColor_inside * LightColor * LightPower * cosTheta / (distance*distance) +
-            // Specular : reflective highlight, like a mirror
-            MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
-    }
-    else{
-        // light hit the outside of the face.
-        gl_FragColor.rgb =
-            // Ambient : simulates indirect lighting
-            MaterialAmbientColor +
-            // Diffuse : "color" of the object
-            MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) +
-            // Specular : reflective highlight, like a mirror
-            MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
-    }
+	// blinn
+	vec3 half_way_eye = normalize (surface_to_viewer_eye + direction_to_light_eye);
+	float dot_prod_specular = dot (half_way_eye, normal_eye);
+	// dot_prod_specular = max(dot_prod_specular, 0.0);
+	dot_prod_specular = abs(dot_prod_specular); // We want to make both face reflect light. 
+	float specular_factor = pow (dot_prod_specular, specular_exponent);
+	
+	vec3 Is = Ls * Ks * specular_factor * light_power / (distance * distance); // final specular intensity
+	
+
+	// final colour
+	fragment_colour = vec4 (Is + Id + Ia, 1.0); // TODO: I have a question. What if it is larger than 1.0 after adding. 
+	// fragment_colour = vec4(dot_prod, 0.0, 0.0, 1.0);
 }
