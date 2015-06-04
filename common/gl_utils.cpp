@@ -20,6 +20,8 @@
 #define GL_LOG_FILE "gl.log"
 #define MAX_SHADER_LENGTH 262144
 
+static char* g_title = "CG Presentation by Jiaqi LIU";
+
 /*--------------------------------LOG FUNCTIONS-------------------------------*/
 bool restart_gl_log () {
 	FILE* file = fopen (GL_LOG_FILE, "w");
@@ -99,9 +101,8 @@ bool start_gl () {
 	g_window = glfwCreateWindow (
 		vmode->width, vmode->height, "Extended GL Init", mon, NULL
 	);*/
-
 	g_window = glfwCreateWindow (
-		g_gl_width, g_gl_height, "CG Presentation by Jiaqi LIU", NULL, NULL
+		g_gl_width, g_gl_height, g_title, NULL, NULL
 	);
 	if (!g_window) {
 		fprintf (stderr, "ERROR: could not open window with GLFW3\n");
@@ -148,7 +149,7 @@ void _update_fps_counter (GLFWwindow* window) {
 		previous_seconds = current_seconds;
 		double fps = (double)frame_count / elapsed_seconds;
 		char tmp[128];
-		 sprintf (tmp, "opengl @ fps: %.2f", fps);
+		 sprintf (tmp, "%s @ fps: %.2f", g_title, fps);
 		 glfwSetWindowTitle (window, tmp);
 		 frame_count = 0;
 	}
