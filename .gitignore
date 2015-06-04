@@ -1,3 +1,5 @@
 *.sdf
 *.opensdf
 *.log
+*.tlog
+*.idb
