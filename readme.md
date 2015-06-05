@@ -1,4 +1,4 @@
-One small presentational program for Computational Geometry Course.
+One small presentational program for Computational Geometry Course. Modified from Anton's OpenGL 4 Tutorial. 
 
 ========
 
