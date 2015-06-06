@@ -1,3 +1,5 @@
+# CG_Presentation
+
 One small presentational program for Computational Geometry Course. Modified from Anton's OpenGL 4 Tutorial. 
 
 ========
