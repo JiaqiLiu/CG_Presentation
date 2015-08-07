@@ -4,3 +4,5 @@
 *.tlog
 *.idb
 *.lastbuildstate
+Debug/
+test_gl/Debug
