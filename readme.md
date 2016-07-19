@@ -1,6 +1,8 @@
 # CG_Presentation
 
-One small presentational program for Computational Geometry Course. Modified from Anton's OpenGL 4 Tutorial. 
+One small presentational program for <a href="http://dsa.cs.tsinghua.edu.cn/~deng/cg/index.htm" target="_blank">Computational Geometry Course</a>.
+
+Modified from <a href="http://antongerdelan.net/opengl/" target="_blank">Anton's OpenGL 4 Tutorial</a>.
 
 ========
 
@@ -21,7 +23,3 @@ Y/Z
 Change Speed: 7/8/9/0
 
 ========
-
-TODO: 
-
-* There are stills some places can be improved. I will update the codes when I learn them well...
